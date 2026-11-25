@@ -24,7 +24,8 @@ body{display:flex;flex-direction:column;background:var(--bg);color:var(--ink);fo
   background:linear-gradient(var(--bg) 35%,transparent)}
 .bar > *{pointer-events:auto}
 .pill{background:var(--glass);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:999px;color:var(--ink)}
-.pill.count{justify-self:start;min-width:52px;height:44px;padding:0 16px;display:grid;place-items:center;font-weight:600;font-size:.9rem;font-variant-numeric:tabular-nums}
+.pill.count{justify-self:start;min-width:52px;height:44px;padding:0 16px 0 12px;display:flex;align-items:center;gap:8px;font:inherit;font-weight:600;font-size:.9rem;font-variant-numeric:tabular-nums;cursor:pointer}
+.pill.count span:first-child{font-size:1.5rem;line-height:1;margin-top:-3px}
 .who{display:flex;flex-direction:column;align-items:center;gap:0}
 .avatar{width:58px;height:58px;border-radius:50%;background:var(--out);color:var(--out-ink);display:grid;place-items:center;font-weight:700;font-size:1.7rem;border:3px solid var(--bg)}
 .pill.name{font:inherit;font-weight:700;font-size:.95rem;padding:5px 14px;margin-top:-8px;cursor:pointer}
@@ -55,13 +56,21 @@ body{display:flex;flex-direction:column;background:var(--bg);color:var(--ink);fo
 .msg.out.waiting{opacity:.7}
 .msg.hearing{background:transparent;border:1px dashed var(--line);color:var(--muted);font-style:italic}
 .example{opacity:.55}
+button.msg.out{font:inherit;border:0;text-align:left;cursor:pointer;touch-action:manipulation}
+.tap{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.thumb{display:block;max-width:180px;height:auto;border-radius:12px;margin:2px 0 6px}
+.badge{position:absolute;top:-14px;width:28px;height:28px;border-radius:50%;background:var(--in);border:2px solid var(--bg);display:grid;place-items:center;font-size:.8rem;font-style:normal}
+.badge.right{right:-10px} .badge.left{left:-10px}
+.marks{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+.marks button{font:inherit;border:1px solid var(--line);background:var(--in);color:var(--ink);border-radius:999px;padding:5px 14px;cursor:pointer}
+.marks button[aria-pressed="true"]{background:var(--out);border-color:var(--out)}
+.hidden-mode .inline.mic[aria-pressed="true"]{background:transparent;color:var(--muted);animation:none}
 
-details.conf{align-self:flex-end;max-width:92%;font-size:.72rem;color:var(--muted);margin:1px 6px 6px;text-align:right}
-details.conf summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;padding:3px 0;font-weight:600}
-details.conf summary::-webkit-details-marker{display:none}
+.conf{align-self:flex-end;max-width:92%;font-size:.72rem;color:var(--muted);margin:1px 6px 6px;text-align:right}
+.conf .sum{display:inline-flex;align-items:center;gap:6px;padding:3px 0;font-weight:600}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
 .high .dot{background:var(--good)} .medium .dot{background:var(--warn)} .low .dot{background:var(--bad)}
-.high summary b{color:var(--good)} .medium summary b{color:var(--warn)} .low summary b{color:var(--bad)}
+.high .sum b{color:var(--good)} .medium .sum b{color:var(--warn)} .low .sum b{color:var(--bad)}
 .models{text-align:left;font-size:.82rem;background:var(--in);border-radius:14px;padding:9px 12px;margin-top:4px;display:flex;flex-direction:column;gap:8px;color:var(--ink)}
 .model .name{font-weight:700}
 .model .sub{color:var(--muted)}

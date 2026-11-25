@@ -10,6 +10,18 @@ A static web page that listens through the microphone, picks out trivia question
 4. Tap **Check keys and load model lists** to confirm each key works and to pick models.
 5. Tap the mic and leave it running.
 
+## Using it
+
+- **Mic** (in the message box): tap once and leave it running. It turns red while listening.
+- **Message box**: type a question and send it.
+- **Plus button**: attach a photo of a question.
+- **Tap an answer**: shows the confidence, what each model said, and its sources.
+- **Thumbs up / down** (under an opened answer): mark the answer right or wrong. The mark is included in saved files.
+- **Double-tap a question**: looks it up (again). With "Answer questions automatically" turned off in Settings, questions are only listed until you double-tap them.
+- **Top-left button**: empties the screen while answers keep collecting. Tap again to bring the thread back.
+- **Top-right button**: saves the answers to a file.
+- **Tap the name**: opens Settings.
+
 ## How confidence works
 
 Every model answers each question separately and gives its own 0–100 estimate. The page groups matching answers:
@@ -18,7 +30,7 @@ Every model answers each question separately and gives its own 0–100 estimate.
 - **Fairly sure**: a majority agree.
 - **Unsure**: the models disagree, or a lone model is not sure.
 
-Tap the line under an answer to see what each model said and the pages it cited.
+Tap an answer to see the rating, what each model said and the pages it cited.
 
 ## Things to know
 

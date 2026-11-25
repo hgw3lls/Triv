@@ -11,7 +11,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="pill count" id="count" aria-label="Questions answered">0</div>
+  <button class="pill count" id="backBtn" type="button" aria-label="Hide or show the thread"><span aria-hidden="true">&lsaquo;</span><span id="count">0</span></button>
   <div class="who">
     <div class="avatar" aria-hidden="true">A</div>
     <button class="pill name" id="settingsBtn" type="button" aria-label="Open settings">Robbie <span aria-hidden="true">&rsaquo;</span></button>
@@ -26,8 +26,9 @@
 
 <p class="notice" id="notice" role="status"></p>
 
+<input type="file" id="fileInput" accept="image/*" hidden>
 <form class="composer" id="composer">
-  <button class="round glass" id="plusBtn" type="button" aria-label="Settings and saving">
+  <button class="round glass" id="plusBtn" type="button" aria-label="Attach a photo of a question">
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z"/></svg>
   </button>
   <div class="field">
@@ -83,6 +84,7 @@
     <fieldset>
       <legend>Behavior</legend>
       <label class="check"><input type="checkbox" id="optSearch"> Let models search the web when unsure</label>
+      <label class="check"><input type="checkbox" id="optAuto"> Answer questions automatically (off: double-tap a question to look it up)</label>
       <label class="check"><input type="checkbox" id="optRemember"> Remember keys on this device</label>
       <label for="optLang">Listening language</label>
       <input id="optLang" type="text" autocomplete="off" spellcheck="false" placeholder="en-US">
