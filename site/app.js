@@ -248,8 +248,14 @@
     wrap.className += " item";
     var anyPending = Object.keys(item.results).some(function (k) { return item.results[k].pending; });
     var f = item.final;
-    thread.appendChild(el("div", "msg in" + (item.example ? " example" : ""), item.question));
-    var out = el("div", "msg out" + (f ? (f.level === "low" ? " low" : "") : " waiting"), f ? f.answer : (anyPending ? "Looking it up…" : "No answer"));
+    var row = el("div", "row" + (item.example ? " example" : ""));
+    row.appendChild(el("div", "mini", "A"));
+    var col = el("div", "col");
+    col.appendChild(el("div", "from", "Robbie"));
+    col.appendChild(el("div", "msg in", item.question));
+    row.appendChild(col);
+    thread.appendChild(row);
+    var out = el("div", "msg out" + (f ? (f.level === "low" ? " low" : "") : " waiting"), f ? f.answer : (anyPending ? "…" : "No answer"));
     if (item.example) out.className += " example";
     thread.appendChild(out);
 
@@ -259,11 +265,12 @@
     var sum = el("summary");
     sum.appendChild(el("span", "dot"));
     if (f) {
-      sum.appendChild(el("b", null, levelWord(f.level) + " · " + f.percent + "%"));
-      sum.appendChild(el("span", null, f.of > 1 ? f.agree + " of " + f.of + " agree" : "1 model"));
-      if (anyPending) sum.appendChild(el("span", null, "· still checking"));
+      sum.appendChild(el("b", null, f.percent + "%"));
+      if (f.of > 1) sum.appendChild(el("span", null, f.agree + "/" + f.of));
+      if (anyPending) sum.appendChild(el("span", null, "…"));
+      sum.setAttribute("aria-label", levelWord(f.level) + ", " + f.percent + " percent, " + f.agree + " of " + f.of + " models agree");
     } else {
-      sum.appendChild(el("span", null, anyPending ? "Asking " + Object.keys(item.results).length + " model(s)" : "Every model failed, tap for details"));
+      sum.appendChild(el("span", null, anyPending ? "…" : "Failed, tap for details"));
     }
     d.appendChild(sum);
     var box = el("div", "models");
@@ -297,18 +304,30 @@
     var nearBottom = forceBottom || thread.scrollHeight - thread.scrollTop - thread.clientHeight < 140;
     thread.textContent = "";
     if (!items.length) {
-      thread.appendChild(el("div", "stamp", "Tap the mic and leave it running. Questions it hears show up here with answers."));
-      var ex = el("div", "example"); thread.appendChild(ex);
+      thread.appendChild(el("div", "stamp", "Tap the mic and leave it running."));
       renderItem(EXAMPLE);
     } else {
-      var lastDay = "";
+      var lastAt = 0, today = new Date().toDateString();
       items.forEach(function (item) {
-        var day = item.at ? new Date(item.at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "";
-        if (day && day !== lastDay) { thread.appendChild(el("div", "stamp", day)); lastDay = day; }
+        if (item.at && item.at - lastAt > 15 * 60000) {
+          var d = new Date(item.at);
+          var day = d.toDateString() === today ? "Today" : d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+          thread.appendChild(el("div", "stamp", day + " " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })));
+        }
+        if (item.at) lastAt = item.at;
         renderItem(item);
       });
     }
-    if (hearingText) thread.appendChild(el("div", "msg hearing", hearingText));
+    if (hearingText) {
+      var hrow = el("div", "row");
+      hrow.appendChild(el("div", "mini", "A"));
+      var hcol = el("div", "col");
+      hcol.appendChild(el("div", "from", "Robbie"));
+      hcol.appendChild(el("div", "msg in hearing", hearingText));
+      hrow.appendChild(hcol);
+      thread.appendChild(hrow);
+    }
+    $("count").textContent = String(items.length);
     if (nearBottom) thread.scrollTop = thread.scrollHeight;
   }
   function say(msg, err) { notice.textContent = msg || ""; notice.className = "notice" + (err ? " err" : ""); }
@@ -320,8 +339,6 @@
   function setListening(on) {
     micBtn.setAttribute("aria-pressed", on ? "true" : "false");
     micBtn.setAttribute("aria-label", on ? "Stop listening" : "Start listening");
-    statusEl.textContent = on ? "Listening" : "Not listening";
-    statusEl.className = "status" + (on ? " live" : "");
   }
   function startRec() {
     rec = new SR();
@@ -369,12 +386,20 @@
     catch (e) { want = false; say("Could not start the microphone: " + (e.message || e), true); }
   });
 
+  function syncComposer() {
+    var has = !!$("askInput").value.trim();
+    micBtn.hidden = has || !SR;
+    $("sendBtn").hidden = !has && !!SR;
+  }
+  $("askInput").addEventListener("input", syncComposer);
+  $("plusBtn").addEventListener("click", function () { openSheet(); });
+
   $("composer").addEventListener("submit", function (e) {
     e.preventDefault();
     var v = $("askInput").value.trim();
     if (!v) return;
     if (!active().length) { openSheet("Add at least one API key first."); return; }
-    $("askInput").value = ""; say("");
+    $("askInput").value = ""; say(""); syncComposer();
     addQuestion(v);
   });
 
@@ -453,8 +478,8 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
   }
   function stamp() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-  $("saveMd").addEventListener("click", function () {
-    if (!items.length) { $("modelsOut").textContent = "No answers to save yet."; return; }
+  function saveMd() {
+    if (!items.length) { $("modelsOut").textContent = "No answers to save yet."; say("No answers to save yet."); return; }
     var out = "# Trivia answers, " + stamp() + "\n\n";
     items.forEach(function (it) {
       var f = it.final;
@@ -466,7 +491,10 @@
       out += "\n";
     });
     download("trivia-answers-" + stamp() + ".md", "text/markdown", out);
-  });
+    say("Saved " + items.length + " answers to a file.");
+  }
+  $("saveMd").addEventListener("click", saveMd);
+  $("saveBtn").addEventListener("click", saveMd);
   $("saveCsv").addEventListener("click", function () {
     if (!items.length) { $("modelsOut").textContent = "No answers to save yet."; return; }
     var rows = [["#", "Question", "Answer", "Confidence", "Percent", "Agree", "Claude", "OpenAI", "Gemini"]];
@@ -491,6 +519,7 @@
   // ---------- start ----------
   loadAll();
   render(true);
-  if (!SR) { micBtn.hidden = true; say("This browser cannot listen. Use Chrome, Edge or Safari, or type questions below."); }
+  syncComposer();
+  if (!SR) { say("This browser cannot listen. Use Chrome, Edge or Safari, or type questions below."); }
   else if (!active().length) say("Add an API key in Settings to get answers.");
 })();

@@ -1,4 +1,4 @@
-# Trivia Listener
+# Trivia Listener ("Robbie")
 
 A static web page that listens through the microphone, picks out trivia questions, asks Claude, OpenAI and Gemini for the answer (each can search the web), and lists the answers in a chat thread with a confidence rating. It never waits for you.
 
