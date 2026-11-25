@@ -37,7 +37,8 @@ Free models cannot search the web or read photos here, and their limits change, 
 ## How it keeps calls down
 
 - **Voice detector on the phone.** The page listens for the pitch of a human voice before it records anything. Applause, clatter and crowd rumble never start a clip, and a clip with too little voice in it is dropped instead of sent. Music with a strong melody or singing can still get through.
-- **One call per clip.** The call that hears a clip also finds the questions and answers them. With Gemini that is a single call; with Groq or OpenAI it is one transcription plus one call.
+- **Whisper for hearing.** With a Groq key, clips go to Groq's Whisper, which is built for speech, fast and cheap. The last few sentences are sent as a hint so names and mid-sentence starts come out right. Without a Groq key it uses Gemini, then OpenAI, and moves to the next one if one fails.
+- **One call to find and answer.** After the transcription, a single call finds the questions and answers them. With Gemini the hearing is part of that same call.
 - **Other models only when needed.** The fastest model with a key answers first. The rest are asked only if it is unsure or flags the question, and web search runs only if they still disagree. Double-tap a question to ask every model straight away, or turn on "Ask every model every time" in Settings.
 - **Rolling context.** The last 45 seconds of what was said goes along with each clip, so a question split by a pause is stitched back together.
 - **Spending guard.** Settings shows the calls sent today and lets you cap calls per day (default 800) and heard questions per minute (default 8).
@@ -56,7 +57,7 @@ Tap an answer to see the rating, what each model said and the pages it cited.
 
 - **Keys** are stored in this browser's local storage (or only in memory if you untick "Remember keys") and sent only to the provider that issued them. Nothing is stored in this repository. Anyone using your unlocked browser could read them, so use keys with spending limits.
 - **Cost**: each question is one spotting call plus one call per model, and web searches are billed extra by each provider.
-- **Listening** records the microphone in the page and sends each clip to Gemini (or OpenAI if there is no Gemini key) to be transcribed. It plays no sounds. With only a Claude key it falls back to the browser's built-in speech recognition, which can chime and stops more often on iPhone.
+- **Listening** records the microphone in the page and sends each clip to Groq, Gemini or OpenAI (in that order, whichever you have a key for) to be transcribed. It plays no sounds. With only a Claude key it falls back to the browser's built-in speech recognition, which can chime and stops more often on iPhone.
 - The page has to stay open and on screen: phones stop the microphone when the screen locks or the browser goes to the background.
 - **Claude web search** has to be enabled for your organization in the Claude Console. If a provider rejects the search tool, the page retries without it and says so.
 - **Saving**: Settings → Save answers as `.md` or `.csv`.

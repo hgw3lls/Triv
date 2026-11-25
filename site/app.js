@@ -591,8 +591,8 @@
   var quiet = null, clipQueue = [], clipBusy = false;
 
   function audioProvider() {
-    if ((settings.keys.gemini || "").trim()) return "gemini";
     if ((settings.keys.groq || "").trim()) return "groq";
+    if ((settings.keys.gemini || "").trim()) return "gemini";
     if ((settings.keys.openai || "").trim()) return "openai";
     return null;
   }
@@ -646,57 +646,77 @@
     }
     clipBusy = false;
   }
+  // Send one clip to be heard. Order: Groq's Whisper (built for speech, fast, cheap), then Gemini
+  // (hears and answers in one call), then OpenAI. The next one is tried if one fails.
   async function handleClip(pcm) {
     var wav = L.encodeWav(pcm, 16000);
-    var prov = audioProvider();
-    if (!prov) return;
-    if (prov === "gemini") {
-      // One call hears the clip, finds the questions and (with auto-answer on) answers them.
+    var key = function (id) { return (settings.keys[id] || "").trim(); };
+    var routes = ["groq", "gemini", "openai"].filter(key);
+    var lastErr = "";
+    for (var n = 0; n < routes.length; n++) {
       try {
-        var gp = PROVIDERS.filter(function (p) { return p.id === "gemini"; })[0];
-        var withAnswers = settings.auto;
-        var r = await http("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(modelOf(gp)) + ":generateContent", {
-          method: "POST",
-          headers: { "content-type": "application/json", "x-goog-api-key": settings.keys.gemini.trim() },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: listenPrompt(withAnswers, true) }] },
-            contents: [{ role: "user", parts: [{ text: "Recent context:\n" + contextText() + "\n\nThe new part is the attached audio clip." }, { inline_data: { mime_type: "audio/wav", data: toBase64(wav) } }] }]
-          })
-        });
-        var text = "";
-        ((((r.candidates || [])[0] || {}).content || {}).parts || []).forEach(function (p) { if (p.text && !p.thought) text += p.text; });
-        var parsed = L.parseJson(text);
-        if (!parsed) throw new Error("Gemini returned nothing usable");
-        remember(parsed.heard);
-        takeHeard(parsed.questions, withAnswers ? gp : null);
+        if (routes[n] === "gemini") await hearWithGemini(wav);
+        else await hearWithWhisper(routes[n], key(routes[n]), wav);
         return;
       } catch (e) {
-        if (e.capped || (!(settings.keys.groq || "").trim() && !(settings.keys.openai || "").trim())) throw new Error(e.capped ? e.message : "Gemini: " + e.message);
+        if (e.capped) throw e;
+        lastErr = e.message;
       }
     }
-    // Groq or OpenAI: transcribe the clip, then find (and answer) the questions in one more call.
-    var services = [];
-    if ((settings.keys.groq || "").trim()) services.push({ name: "Groq", url: "https://api.groq.com/openai/v1/audio/transcriptions", key: settings.keys.groq.trim(), models: ["whisper-large-v3-turbo", "whisper-large-v3"] });
-    if ((settings.keys.openai || "").trim()) services.push({ name: "OpenAI", url: "https://api.openai.com/v1/audio/transcriptions", key: settings.keys.openai.trim(), models: ["gpt-4o-mini-transcribe", "whisper-1"] });
-    var heard = null, lastErr = "";
-    for (var s = 0; s < services.length && heard === null; s++) {
-      for (var i = 0; i < services[s].models.length && heard === null; i++) {
-        var fd = new FormData();
-        fd.append("file", new Blob([wav], { type: "audio/wav" }), "clip.wav");
-        fd.append("model", services[s].models[i]);
-        if (settings.lang) fd.append("language", settings.lang.slice(0, 2).toLowerCase());
-        try {
-          var t = await http(services[s].url, { method: "POST", headers: { authorization: "Bearer " + services[s].key }, body: fd });
-          heard = String(t.text || "");
-        } catch (e) {
-          lastErr = e.capped ? e.message : services[s].name + ": " + e.message;
-          if (e.capped) throw new Error(lastErr);
-          if (e.status !== 400 && e.status !== 404) break; // not a model-name problem: try the next service
-        }
+    if (lastErr) throw new Error(lastErr);
+  }
+  // Transcribe, then one more call finds (and answers) the questions in the text.
+  async function hearWithWhisper(id, apiKey, wav) {
+    var groq = id === "groq";
+    var url = (groq ? "https://api.groq.com/openai/v1" : "https://api.openai.com/v1") + "/audio/transcriptions";
+    var models = groq ? ["whisper-large-v3-turbo", "whisper-large-v3"] : ["gpt-4o-mini-transcribe", "whisper-1"];
+    // The last few sentences help it spell names and carry on mid-sentence.
+    var hint = recent.map(function (r) { return r.text; }).join(" ").slice(-200);
+    var heard = null;
+    for (var i = 0; i < models.length && heard === null; i++) {
+      var fd = new FormData();
+      fd.append("file", new Blob([wav], { type: "audio/wav" }), "clip.wav");
+      fd.append("model", models[i]);
+      if (settings.lang) fd.append("language", settings.lang.slice(0, 2).toLowerCase());
+      if (hint) fd.append("prompt", hint);
+      try {
+        var t = await http(url, { method: "POST", headers: { authorization: "Bearer " + apiKey }, body: fd });
+        heard = String(t.text || "").trim();
+      } catch (e) {
+        if (e.capped) throw e;
+        if (i === models.length - 1 || (e.status !== 400 && e.status !== 404)) throw new Error((groq ? "Groq: " : "OpenAI: ") + e.message);
       }
     }
-    if (heard === null) throw new Error(lastErr || "No service could transcribe it");
-    if (heard.trim()) { pending += " " + heard; clearTimeout(timer); await spot(); }
+    // With a hint and a clip that has no speech, Whisper can just repeat the hint back. Ignore that.
+    if (!heard || (hint && L.norm(hint).indexOf(L.norm(heard)) >= 0 && heard.length > 12)) return;
+    pending += " " + heard;
+    clearTimeout(timer);
+    await spot();
+  }
+  // One call hears the clip, finds the questions and (with auto-answer on) answers them.
+  async function hearWithGemini(wav) {
+    var gp = PROVIDERS.filter(function (p) { return p.id === "gemini"; })[0];
+    var withAnswers = settings.auto;
+    var r;
+    try {
+      r = await http("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(modelOf(gp)) + ":generateContent", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-goog-api-key": settings.keys.gemini.trim() },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: listenPrompt(withAnswers, true) }] },
+          contents: [{ role: "user", parts: [{ text: "Recent context:\n" + contextText() + "\n\nThe new part is the attached audio clip." }, { inline_data: { mime_type: "audio/wav", data: toBase64(wav) } }] }]
+        })
+      });
+    } catch (e) {
+      if (e.capped) throw e;
+      throw new Error("Gemini: " + e.message);
+    }
+    var text = "";
+    ((((r.candidates || [])[0] || {}).content || {}).parts || []).forEach(function (p) { if (p.text && !p.thought) text += p.text; });
+    var parsed = L.parseJson(text);
+    if (!parsed) throw new Error("Gemini returned nothing usable");
+    remember(parsed.heard);
+    takeHeard(parsed.questions, withAnswers ? gp : null);
   }
 
   function setListening(on) {
