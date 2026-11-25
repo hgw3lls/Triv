@@ -6,13 +6,13 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.groq.com https://openrouter.ai; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#000000">
-<title>Robbie</title>
+<title>Oleh</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Robbie">
+<meta name="apple-mobile-web-app-title" content="Oleh">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Open the connections early so the first question does not wait on them. -->
 <link rel="preconnect" href="https://api.groq.com" crossorigin>
@@ -25,8 +25,8 @@
 <header class="bar">
   <button class="pill count" id="backBtn" type="button" aria-label="Clear all answers (tap twice)"><span aria-hidden="true">&lsaquo;</span><span id="count">0</span></button>
   <div class="who">
-    <button class="avatar" id="hideBtn" type="button" aria-label="Hide or show the thread">A</button>
-    <button class="pill name" id="settingsBtn" type="button" aria-label="Open settings">Robbie <span aria-hidden="true">&rsaquo;</span></button>
+    <button class="avatar" id="hideBtn" type="button" aria-label="Hide or show the thread">O</button>
+    <button class="pill name" id="settingsBtn" type="button" aria-label="Open settings"><span id="nameText">Oleh</span> <span aria-hidden="true">&rsaquo;</span></button>
     <div class="status" id="status"></div>
   </div>
   <button class="round glass" id="saveBtn" type="button" aria-label="Save answers to a file">
@@ -117,6 +117,8 @@
       <label class="check"><input type="checkbox" id="optAuto"> Answer questions automatically (off: double-tap a question to look it up)</label>
       <label class="check"><input type="checkbox" id="optAll"> Ask every model every time (slower, more calls)</label>
       <label class="check"><input type="checkbox" id="optRemember"> Remember keys on this device</label>
+      <label for="optName">Contact name shown at the top</label>
+      <input id="optName" type="text" autocomplete="off" maxlength="24">
       <label for="optRoom">Room noise</label>
       <select id="optRoom">
         <option value="quiet">Quiet room (picks up soft voices)</option>

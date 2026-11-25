@@ -1,4 +1,4 @@
-# Trivia Listener ("Robbie")
+# Trivia Listener
 
 A static web page that listens through the microphone, picks out trivia questions, asks Claude, OpenAI and Gemini for the answer (each can search the web), and lists the answers in a chat thread with a confidence rating. It never waits for you.
 
@@ -45,7 +45,7 @@ Each thumbs up or down is counted for the models that gave that answer. Once a m
 
 ## Add to your home screen
 
-Open the site in Safari or Chrome, use Share → Add to Home Screen, and it opens full screen like an app, named Robbie.
+Open the site in Safari or Chrome, use Share → Add to Home Screen, and it opens full screen like an app. The name at the top and the letter in the icon come from "Contact name" in Settings (the home-screen label itself is fixed as Oleh).
 
 ## How it keeps calls down
 

@@ -12,7 +12,7 @@
     { id: "openrouter", name: "OpenRouter", model: "meta-llama/llama-3.3-70b-instruct:free", compat: "https://openrouter.ai/api/v1" }
   ];
   var SKEY = "trivia-settings-v1", IKEY = "trivia-items-v1";
-  var settings = { keys: {}, models: {}, search: true, auto: true, all: false, cap: 800, perMin: 8, room: "normal", remember: true, lang: "en-US" };
+  var settings = { keys: {}, models: {}, search: true, auto: true, all: false, cap: 800, perMin: 8, room: "normal", name: "Oleh", remember: true, lang: "en-US" };
   var items = [];
   // How far above the background a voice has to be before recording starts.
   var ROOMS = {
@@ -32,6 +32,7 @@
         settings.auto = s.auto !== false;
         settings.all = s.all === true;
         if (ROOMS[s.room]) settings.room = s.room;
+        if (typeof s.name === "string" && s.name.trim()) settings.name = s.name.trim().slice(0, 24);
         if (typeof s.cap === "number" && s.cap >= 0) settings.cap = s.cap;
         if (typeof s.perMin === "number" && s.perMin >= 0) settings.perMin = s.perMin;
         settings.remember = s.remember !== false;
@@ -50,7 +51,7 @@
     });
   }
   function saveSettings() {
-    var copy = { keys: settings.remember ? settings.keys : {}, models: settings.models, search: settings.search, auto: settings.auto, all: settings.all, cap: settings.cap, perMin: settings.perMin, room: settings.room, remember: settings.remember, lang: settings.lang };
+    var copy = { keys: settings.remember ? settings.keys : {}, models: settings.models, search: settings.search, auto: settings.auto, all: settings.all, cap: settings.cap, perMin: settings.perMin, room: settings.room, name: settings.name, remember: settings.remember, lang: settings.lang };
     try { localStorage.setItem(SKEY, JSON.stringify(copy)); } catch (e) {}
   }
   function saveItems() {
@@ -451,6 +452,12 @@
     results: { claude: { answer: "Saturn", percent: 95, note: "This sample disappears after your first real question." } },
     final: { answer: "Saturn", level: "high", percent: 95, agree: 1, of: 1 }
   };
+  function initial() { return (settings.name.trim().charAt(0) || "?").toUpperCase(); }
+  function applyName() {
+    $("nameText").textContent = settings.name;
+    $("hideBtn").textContent = initial();
+    document.title = settings.name;
+  }
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -466,9 +473,9 @@
 
     // the question, as heard
     var row = el("div", "row" + (item.example ? " example" : ""));
-    row.appendChild(el("div", "mini", "A"));
+    row.appendChild(el("div", "mini", initial()));
     var col = el("div", "col");
-    col.appendChild(el("div", "from", "Robbie"));
+    col.appendChild(el("div", "from", settings.name));
     var qb = el("div", "msg in tap");
     if (item.thumb && String(item.thumb).indexOf("data:image/jpeg;base64,") === 0) {
       var im = document.createElement("img");
@@ -604,9 +611,9 @@
     }
     if (hearingText) {
       var hrow = el("div", "row");
-      hrow.appendChild(el("div", "mini", "A"));
+      hrow.appendChild(el("div", "mini", initial()));
       var hcol = el("div", "col");
-      hcol.appendChild(el("div", "from", "Robbie"));
+      hcol.appendChild(el("div", "from", settings.name));
       hcol.appendChild(el("div", "msg in hearing", hearingText));
       hrow.appendChild(hcol);
       thread.appendChild(hrow);
@@ -960,6 +967,7 @@
     $("optAuto").checked = settings.auto;
     $("optAll").checked = settings.all;
     $("optRoom").value = settings.room;
+    $("optName").value = settings.name;
     $("recordOut").textContent = recordText();
     $("optCap").value = String(settings.cap);
     $("optPerMin").value = String(settings.perMin);
@@ -976,6 +984,7 @@
     settings.auto = $("optAuto").checked;
     settings.all = $("optAll").checked;
     settings.room = ROOMS[$("optRoom").value] ? $("optRoom").value : "normal";
+    settings.name = $("optName").value.trim().slice(0, 24) || "Oleh";
     var cap = parseInt($("optCap").value, 10), pm = parseInt($("optPerMin").value, 10);
     settings.cap = isFinite(cap) && cap >= 0 ? cap : 800;
     settings.perMin = isFinite(pm) && pm >= 0 ? pm : 8;
@@ -993,6 +1002,7 @@
   $("settingsBtn").addEventListener("click", function () { openSheet(); });
   sheet.addEventListener("close", function () {
     readSheet();
+    applyName(); render();
     say(active().length ? "" : "Add an API key in Settings to get answers.");
   });
 
@@ -1080,6 +1090,7 @@
 
   // ---------- start ----------
   loadAll();
+  applyName();
   render(true);
   syncComposer();
   if (!SR && !canQuiet) { say("This browser cannot listen. Use Chrome, Edge or Safari, or type questions below."); }
