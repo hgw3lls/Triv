@@ -118,7 +118,84 @@
     return '"' + v.replace(/"/g, '""') + '"';
   }
 
-  var api = { norm: norm, sameAnswer: sameAnswer, parseJson: parseJson, clampPct: clampPct, consensus: consensus, csvCell: csvCell };
+  // ---------- audio helpers ----------
+  function rms(frame) {
+    var sum = 0;
+    for (var i = 0; i < frame.length; i++) sum += frame[i] * frame[i];
+    return Math.sqrt(sum / (frame.length || 1));
+  }
+
+  // Splits a stream of microphone frames into clips. A clip starts when the sound rises above the
+  // room's background level and ends at the first long enough pause (or at the length cap).
+  function createSegmenter(opts) {
+    var sr = opts.sampleRate;
+    var endSilence = opts.endSilenceMs || 1000, maxMs = opts.maxMs || 20000, minSpeech = opts.minSpeechMs || 500;
+    var prerollSamples = Math.round(((opts.prerollMs || 350) / 1000) * sr);
+    var floor = 0.004, pre = [], preLen = 0, seg = null, segLen = 0, speechMs = 0, silenceMs = 0, segMin = 1;
+    function threshold() { return Math.max(0.01, floor * 2.5); }
+    function finish(capped) {
+      var parts = seg, n = segLen, spoke = speechMs;
+      if (capped) floor = Math.max(floor, segMin); // never went quiet: the room is louder than assumed
+      seg = null; segLen = 0; speechMs = 0; silenceMs = 0; segMin = 1;
+      if (opts.onState) opts.onState(false);
+      if (spoke < minSpeech) return;
+      var out = new Float32Array(n), at = 0;
+      parts.forEach(function (f) { out.set(f, at); at += f.length; });
+      opts.onSegment(out);
+    }
+    return {
+      push: function (frame) {
+        var ms = (frame.length / sr) * 1000, e = rms(frame), loud = e > threshold();
+        if (!seg) {
+          if (!loud) {
+            floor = floor * 0.97 + e * 0.03;
+            pre.push(frame); preLen += frame.length;
+            while (pre.length > 1 && preLen - pre[0].length >= prerollSamples) preLen -= pre.shift().length;
+            return;
+          }
+          seg = pre; segLen = preLen; pre = []; preLen = 0;
+          seg.push(frame); segLen += frame.length;
+          speechMs = ms; silenceMs = 0; segMin = e;
+          if (opts.onState) opts.onState(true);
+          return;
+        }
+        seg.push(frame); segLen += frame.length;
+        if (e < segMin) segMin = e;
+        if (loud) { speechMs += ms; silenceMs = 0; } else silenceMs += ms;
+        if (silenceMs >= endSilence) finish(false);
+        else if ((segLen / sr) * 1000 >= maxMs) finish(true);
+      },
+      flush: function () { if (seg) finish(false); }
+    };
+  }
+
+  function downsample(input, from, to) {
+    if (to >= from) return input;
+    var ratio = from / to, n = Math.floor(input.length / ratio), out = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var a = Math.floor(i * ratio), b = Math.min(input.length, Math.floor((i + 1) * ratio)), sum = 0;
+      for (var j = a; j < b; j++) sum += input[j];
+      out[i] = sum / Math.max(1, b - a);
+    }
+    return out;
+  }
+
+  // 16-bit mono WAV.
+  function encodeWav(samples, rate) {
+    var buf = new ArrayBuffer(44 + samples.length * 2), v = new DataView(buf);
+    function str(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+    str(0, "RIFF"); v.setUint32(4, 36 + samples.length * 2, true); str(8, "WAVE"); str(12, "fmt ");
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    str(36, "data"); v.setUint32(40, samples.length * 2, true);
+    for (var i = 0; i < samples.length; i++) {
+      var x = Math.max(-1, Math.min(1, samples[i]));
+      v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true);
+    }
+    return buf;
+  }
+
+  var api = { rms: rms, createSegmenter: createSegmenter, downsample: downsample, encodeWav: encodeWav, norm: norm, sameAnswer: sameAnswer, parseJson: parseJson, clampPct: clampPct, consensus: consensus, csvCell: csvCell };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.TriviaLogic = api;
 })(typeof window !== "undefined" ? window : this);

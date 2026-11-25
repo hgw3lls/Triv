@@ -12,13 +12,15 @@ A static web page that listens through the microphone, picks out trivia question
 
 ## Using it
 
-- **Mic** (in the message box): tap once and leave it running. It turns red while listening.
+- **Mic** (in the message box): tap once and leave it running. It turns red while listening. With a Gemini or OpenAI key it records silently, cuts the audio at each pause, and submits every question it finds without waiting for you.
 - **Message box**: type a question and send it.
 - **Plus button**: attach a photo of a question.
 - **Tap an answer**: shows the confidence, what each model said, and its sources.
 - **Thumbs up / down** (under an opened answer): mark the answer right or wrong. The mark is included in saved files.
 - **Double-tap a question**: looks it up (again). With "Answer questions automatically" turned off in Settings, questions are only listed until you double-tap them.
-- **Top-left button**: empties the screen while answers keep collecting. Tap again to bring the thread back.
+- **Swipe a question sideways**: deletes it and its answer.
+- **Round icon at the top**: empties the screen while answers keep collecting. Tap again to bring the thread back.
+- **Top-left button**: tap twice within three seconds to clear everything.
 - **Top-right button**: saves the answers to a file.
 - **Tap the name**: opens Settings.
 
@@ -36,7 +38,8 @@ Tap an answer to see the rating, what each model said and the pages it cited.
 
 - **Keys** are stored in this browser's local storage (or only in memory if you untick "Remember keys") and sent only to the provider that issued them. Nothing is stored in this repository. Anyone using your unlocked browser could read them, so use keys with spending limits.
 - **Cost**: each question is one spotting call plus one call per model, and web searches are billed extra by each provider.
-- **Listening** uses the browser's built-in speech recognition. Chrome and Edge send the audio to their speech service. It works best in Chrome on a computer or Android; Safari on iPhone works but stops more often.
+- **Listening** records the microphone in the page and sends each clip to Gemini (or OpenAI if there is no Gemini key) to be transcribed. It plays no sounds. With only a Claude key it falls back to the browser's built-in speech recognition, which can chime and stops more often on iPhone.
+- The page has to stay open and on screen: phones stop the microphone when the screen locks or the browser goes to the background.
 - **Claude web search** has to be enabled for your organization in the Claude Console. If a provider rejects the search tool, the page retries without it and says so.
 - **Saving**: Settings → Save answers as `.md` or `.csv`.
 
