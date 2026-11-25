@@ -112,3 +112,11 @@ label.check{display:flex;align-items:center;gap:8px;font-size:.95rem;color:var(-
 .rowbtn{font:inherit;text-align:left;width:100%;background:var(--in);color:var(--out);border:0;border-radius:12px;padding:12px;cursor:pointer}
 fieldset .rowbtn{background:var(--bg)}
 .rowbtn.danger{color:var(--bad)}
+
+/* editing a question in place */
+.editbox{display:flex;flex-wrap:wrap;gap:6px;min-width:220px}
+.edit{flex:1 1 100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--out);border-radius:10px;padding:6px 8px;resize:vertical;-webkit-user-select:text;user-select:text}
+.editbox button{font:inherit;font-size:.85rem;border:0;border-radius:999px;padding:5px 12px;cursor:pointer;background:var(--out);color:var(--out-ink)}
+.editbox button:last-child{background:transparent;color:var(--muted)}
+.tap{-webkit-touch-callout:none}
+fieldset select{font:inherit;width:100%;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}

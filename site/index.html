@@ -7,6 +7,13 @@
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#000000">
 <title>Robbie</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Robbie">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Open the connections early so the first question does not wait on them. -->
 <link rel="preconnect" href="https://api.groq.com" crossorigin>
 <link rel="preconnect" href="https://generativelanguage.googleapis.com" crossorigin>
@@ -110,6 +117,12 @@
       <label class="check"><input type="checkbox" id="optAuto"> Answer questions automatically (off: double-tap a question to look it up)</label>
       <label class="check"><input type="checkbox" id="optAll"> Ask every model every time (slower, more calls)</label>
       <label class="check"><input type="checkbox" id="optRemember"> Remember keys on this device</label>
+      <label for="optRoom">Room noise</label>
+      <select id="optRoom">
+        <option value="quiet">Quiet room (picks up soft voices)</option>
+        <option value="normal">Normal</option>
+        <option value="noisy">Noisy room (ignores more background)</option>
+      </select>
       <label for="optLang">Listening language</label>
       <input id="optLang" type="text" autocomplete="off" spellcheck="false" placeholder="en-US">
     </fieldset>
@@ -125,6 +138,7 @@
 
     <fieldset>
       <legend>Answers</legend>
+      <p class="hint" id="recordOut"></p>
       <button class="rowbtn" type="button" id="saveMd">Save answers as a text file (.md)</button>
       <button class="rowbtn" type="button" id="saveCsv">Save answers as a spreadsheet (.csv)</button>
       <button class="rowbtn danger" type="button" id="clearBtn">Clear all answers</button>

@@ -6,6 +6,12 @@ assert.ok(L.sameAnswer("The Beatles", "beatles"));
 assert.ok(!L.sameAnswer("4", "14"));
 assert.ok(!L.sameAnswer("Saturn", "Jupiter"));
 assert.ok(!L.sameAnswer("", "x"));
+// multiple choice
+assert.ok(L.sameAnswer("C) Jupiter", "Jupiter"));
+assert.ok(L.sameAnswer("C) Jupiter", "C"));
+assert.ok(L.sameAnswer("A", "a)"));
+assert.ok(!L.sameAnswer("B) Mars", "C) Jupiter"));
+assert.ok(!L.sameAnswer("A", "B"));
 
 assert.deepStrictEqual(L.parseJson('I searched. {"answer":"Saturn","percent":90}'), { answer: "Saturn", percent: 90 });
 assert.deepStrictEqual(L.parseJson('{"a":{"b":1}} trailing'), { a: { b: 1 } });
@@ -40,6 +46,21 @@ c = L.consensus([
 ]);
 assert.strictEqual(c.level, "low");
 assert.ok(c.percent <= 40);
+
+// a model with a better track record wins a one-against-one split
+c = L.consensus([
+  { provider: "claude", answer: "Mars", percent: 80 },
+  { provider: "groq", answer: "Venus", percent: 90 }
+], { claude: 1.4, groq: 0.6 });
+assert.strictEqual(c.answer, "Mars");
+assert.strictEqual(c.level, "low");
+// but two ordinary models still outvote one trusted one
+c = L.consensus([
+  { provider: "claude", answer: "Mars", percent: 80 },
+  { provider: "groq", answer: "Venus", percent: 90 },
+  { provider: "gemini", answer: "Venus", percent: 90 }
+], { claude: 1.5, groq: 1, gemini: 1 });
+assert.strictEqual(c.answer, "Venus");
 
 c = L.consensus([{ provider: "claude", answer: "A", percent: 60 }]);
 assert.strictEqual(c.level, "medium");

@@ -28,11 +28,24 @@ Free models cannot search the web or read photos here, and their limits change, 
 - **Tap an answer**: shows the confidence, what each model said, and its sources.
 - **Thumbs up / down** (under an opened answer): mark the answer right or wrong. The mark is included in saved files.
 - **Double-tap a question**: looks it up (again). With "Answer questions automatically" turned off in Settings, questions are only listed until you double-tap them.
+- **Press and hold a question**: edit what was misheard, then look it up again.
 - **Swipe a question sideways**: deletes it and its answer.
 - **Round icon at the top**: empties the screen while answers keep collecting. Tap again to bring the thread back.
 - **Top-left button**: tap twice within three seconds to clear everything.
 - **Top-right button**: saves the answers to a file.
 - **Tap the name**: opens Settings.
+
+## Multiple choice
+
+When a question comes with choices, they are kept with the question, one per line, and the answer is given as the letter and the choice ("C) Jupiter"). If the host reads the choices after a pause, the earlier question is updated with them and answered again instead of being listed twice.
+
+## Learning from your thumbs
+
+Each thumbs up or down is counted for the models that gave that answer. Once a model has three marked answers, its record tips the balance when models disagree. Settings shows each model's record.
+
+## Add to your home screen
+
+Open the site in Safari or Chrome, use Share → Add to Home Screen, and it opens full screen like an app, named Robbie.
 
 ## How it keeps calls down
 
@@ -58,6 +71,7 @@ Tap an answer to see the rating, what each model said and the pages it cited.
 
 - **Keys** are stored in this browser's local storage (or only in memory if you untick "Remember keys") and sent only to the provider that issued them. Nothing is stored in this repository. Anyone using your unlocked browser could read them, so use keys with spending limits.
 - **Cost**: each question is one spotting call plus one call per model, and web searches are billed extra by each provider.
+- **Room noise** (Settings): Quiet, Normal or Noisy changes how far above the background a voice must be before recording starts.
 - **Listening** records the microphone in the page and sends each clip to Groq, Gemini or OpenAI (in that order, whichever you have a key for) to be transcribed. It plays no sounds. With only a Claude key it falls back to the browser's built-in speech recognition, which can chime and stops more often on iPhone.
 - The page has to stay open and on screen: phones stop the microphone when the screen locks or the browser goes to the background.
 - **Claude web search** has to be enabled for your organization in the Claude Console. If a provider rejects the search tool, the page retries without it and says so.

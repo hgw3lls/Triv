@@ -17,8 +17,10 @@
   // Two answers count as the same when one contains the other on word boundaries:
   // "Rembrandt" matches "Rembrandt van Rijn", but "4" does not match "14".
   function sameAnswer(a, b) {
-    a = norm(a);
-    b = norm(b);
+    // A bare letter such as "A" would be stripped as an article, so compare those as written.
+    var ra = String(a == null ? "" : a).trim().toLowerCase(), rb = String(b == null ? "" : b).trim().toLowerCase();
+    a = norm(a) || ra.replace(/[^a-z0-9]/g, "");
+    b = norm(b) || rb.replace(/[^a-z0-9]/g, "");
     if (!a || !b) return false;
     if (a === b) return true;
     var short = a.length <= b.length ? a : b;
@@ -59,7 +61,8 @@
 
   // results: [{provider, answer, percent}] from models that finished.
   // Returns the answer most models agree on, plus a confidence level and score.
-  function consensus(results) {
+  // weights (optional): {provider: number}, from each model's track record. A heavier group wins a split.
+  function consensus(results, weights) {
     var done = (results || []).filter(function (r) {
       return r && r.answer;
     });
@@ -79,8 +82,11 @@
       if (!ps.length) return 50;
       return ps.reduce(function (a, b) { return a + b; }, 0) / ps.length;
     }
+    function weight(g) {
+      return g.reduce(function (t, r) { var w = weights && weights[r.provider]; return t + (typeof w === "number" ? w : 1); }, 0);
+    }
     groups.sort(function (x, y) {
-      return y.length - x.length || avg(y) - avg(x);
+      return weight(y) - weight(x) || avg(y) - avg(x);
     });
     var best = groups[0];
     var n = done.length;
@@ -160,7 +166,8 @@
     var minVoiced = opts.minVoicedMs || 250, voicedAt = opts.voicedAt || 0.45, holdMs = 600;
     var prerollSamples = Math.round(((opts.prerollMs || 350) / 1000) * sr);
     var floor = 0.004, pre = [], preLen = 0, seg = null, segLen = 0, speechMs = 0, voicedMs = 0, sinceVoiced = 0, silenceMs = 0, segMin = 1;
-    function threshold() { return Math.max(0.01, floor * 2.5); }
+    var minLevel = opts.minLevel || 0.01, ratio = opts.ratio || 2.5; // how far above the room a voice must be
+    function threshold() { return Math.max(minLevel, floor * ratio); }
     function finish(capped) {
       // Drop most of the trailing pause: it carries nothing and makes the upload bigger and slower.
       var spare = silenceMs - 250;
