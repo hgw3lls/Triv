@@ -24,6 +24,10 @@ A static web page that listens through the microphone, picks out trivia question
 - **Top-right button**: saves the answers to a file.
 - **Tap the name**: opens Settings.
 
+## How answering works
+
+Every model first answers from memory, and the first reply shows straight away. If web search is on, the models answer again with a search only when they disagree, are unsure, or say the question needs looking up. The checked answers then replace the quick ones.
+
 ## How confidence works
 
 Every model answers each question separately and gives its own 0–100 estimate. The page groups matching answers:
