@@ -162,6 +162,13 @@
     var floor = 0.004, pre = [], preLen = 0, seg = null, segLen = 0, speechMs = 0, voicedMs = 0, sinceVoiced = 0, silenceMs = 0, segMin = 1;
     function threshold() { return Math.max(0.01, floor * 2.5); }
     function finish(capped) {
+      // Drop most of the trailing pause: it carries nothing and makes the upload bigger and slower.
+      var spare = silenceMs - 250;
+      while (spare > 0 && seg.length > 1) {
+        var lastMs = (seg[seg.length - 1].length / sr) * 1000;
+        if (lastMs > spare) break;
+        spare -= lastMs; segLen -= seg.pop().length;
+      }
       var parts = seg, n = segLen, spoke = speechMs, voiced = voicedMs;
       if (capped) floor = Math.max(floor, segMin); // never went quiet: the room is louder than assumed
       seg = null; segLen = 0; speechMs = 0; voicedMs = 0; sinceVoiced = 0; silenceMs = 0; segMin = 1;
@@ -200,6 +207,21 @@
     };
   }
 
+  // Things speech-to-text produces from noise or small talk. Not worth a model call.
+  var FILLER = ["", "you", "thank you", "thanks", "thanks for watching", "thank you for watching", "thank you very much", "bye", "bye bye",
+    "ok", "okay", "so", "um", "uh", "yeah", "yes", "no", "right", "all right", "alright", "music", "applause", "laughter", "silence"];
+  function isFiller(text) { return FILLER.indexOf(norm(text)) >= 0; }
+  // Should this new text be sent to a model to look for questions? Free check, done on the device.
+  // A short scrap is only worth sending if it might finish a sentence left hanging in the context.
+  function worthAsking(text, context) {
+    if (isFiller(text)) return false;
+    if (String(text).indexOf("?") >= 0) return true;
+    var raw = String(text || "").trim().split(/\s+/).filter(Boolean).length; // counted before "the"/"a" are stripped
+    if (raw >= 3) return true;
+    var c = String(context || "").trim();
+    return c.length > 0 && !/[.?!]$/.test(c);
+  }
+
   function downsample(input, from, to) {
     if (to >= from) return input;
     var ratio = from / to, n = Math.floor(input.length / ratio), out = new Float32Array(n);
@@ -226,7 +248,7 @@
     return buf;
   }
 
-  var api = { rms: rms, voicing: voicing, createSegmenter: createSegmenter, downsample: downsample, encodeWav: encodeWav, norm: norm, sameAnswer: sameAnswer, parseJson: parseJson, clampPct: clampPct, consensus: consensus, csvCell: csvCell };
+  var api = { rms: rms, voicing: voicing, isFiller: isFiller, worthAsking: worthAsking, createSegmenter: createSegmenter, downsample: downsample, encodeWav: encodeWav, norm: norm, sameAnswer: sameAnswer, parseJson: parseJson, clampPct: clampPct, consensus: consensus, csvCell: csvCell };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.TriviaLogic = api;
 })(typeof window !== "undefined" ? window : this);

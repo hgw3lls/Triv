@@ -40,6 +40,7 @@ Free models cannot search the web or read photos here, and their limits change, 
 - **Whisper for hearing.** With a Groq key, clips go to Groq's Whisper, which is built for speech, fast and cheap. The last few sentences are sent as a hint so names and mid-sentence starts come out right. Without a Groq key it uses Gemini, then OpenAI, and moves to the next one if one fails.
 - **One call to find and answer.** After the transcription, a single call finds the questions and answers them. With Gemini the hearing is part of that same call.
 - **Other models only when needed.** The fastest model with a key answers first. The rest are asked only if it is unsure or flags the question, and web search runs only if they still disagree. Double-tap a question to ask every model straight away, or turn on "Ask every model every time" in Settings.
+- **Free checks on the phone.** Small talk and scraps ("okay", "thank you", two stray words) wait as context instead of costing a call. The pause at the end of each clip is trimmed off before upload, and connections to the services are opened as the page loads so the first question is not slowed by them.
 - **Rolling context.** The last 45 seconds of what was said goes along with each clip, so a question split by a pause is stitched back together.
 - **Spending guard.** Settings shows the calls sent today and lets you cap calls per day (default 800) and heard questions per minute (default 8).
 

@@ -67,7 +67,7 @@ function frames(seconds, amp, sr) {
   feed(frames(1.5, 0.002, sr)); // the pause after it
   assert.strictEqual(clips.length, 1, "one clip, cut at the pause");
   const secs = clips[0].length / sr;
-  assert.ok(secs > 3 && secs < 4.2, "clip covers the speech plus the pause: " + secs);
+  assert.ok(secs > 2.8 && secs < 3.4, "clip covers the speech and only a little of the pause: " + secs);
   assert.deepStrictEqual(states, [true, false]);
   feed(frames(0.2, 0.2, sr));   // a cough: too short to send
   feed(frames(1.5, 0.002, sr));
@@ -115,5 +115,13 @@ function frames(seconds, amp, sr) {
   assert.strictEqual(wav.getUint32(24, true), 16000);
   assert.strictEqual(String.fromCharCode(wav.getUint8(0), wav.getUint8(1), wav.getUint8(2), wav.getUint8(3)), "RIFF");
 }
+
+assert.ok(L.isFiller("Thank you."));
+assert.ok(L.isFiller(" Okay "));
+assert.ok(!L.worthAsking("Thank you.", "Who painted the Night Watch?"));
+assert.ok(!L.worthAsking("Next round", "That was round one."), "small talk after a finished sentence waits");
+assert.ok(L.worthAsking("the Titanic", "In what year did they launch"), "a scrap that may finish a hanging sentence is sent");
+assert.ok(L.worthAsking("Who painted the Night Watch", ""));
+assert.ok(L.worthAsking("Paris?", "That was round one."));
 
 console.log("logic tests passed");

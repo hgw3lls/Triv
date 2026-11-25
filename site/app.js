@@ -248,6 +248,9 @@
     var order = ordered(active());
     if (!order.length) { say("Add an API key in Settings to get answers.", true); return; }
     var fresh = pending; pending = "";
+    // Free check first: small talk and scraps wait as context instead of costing a call.
+    var ctx = recent.map(function (r) { return r.text; }).join(" ");
+    if (!L.worthAsking(fresh, ctx)) { if (!L.isFiller(fresh)) remember(fresh); return; }
     spotting = true;
     var parsed = null, lead = null, lastErr = null, withAnswers = settings.auto;
     for (var i = 0; i < order.length && !parsed; i++) {
@@ -688,10 +691,10 @@
       }
     }
     // With a hint and a clip that has no speech, Whisper can just repeat the hint back. Ignore that.
-    if (!heard || (hint && L.norm(hint).indexOf(L.norm(heard)) >= 0 && heard.length > 12)) return;
+    if (!heard || L.isFiller(heard) || (hint && L.norm(hint).indexOf(L.norm(heard)) >= 0 && heard.length > 12)) return;
     pending += " " + heard;
     clearTimeout(timer);
-    await spot();
+    spot(); // not awaited: the next clip can be transcribed while this one is being answered
   }
   // One call hears the clip, finds the questions and (with auto-answer on) answers them.
   async function hearWithGemini(wav) {
