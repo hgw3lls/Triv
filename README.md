@@ -34,15 +34,19 @@ Free models cannot search the web or read photos here, and their limits change, 
 - **Top-right button**: saves the answers to a file.
 - **Tap the name**: opens Settings.
 
-## How answering works
+## How it keeps calls down
 
-Every model first answers from memory, and the first reply shows straight away. If web search is on, the models answer again with a search only when they disagree, are unsure, or say the question needs looking up. The checked answers then replace the quick ones.
+- **Voice detector on the phone.** The page listens for the pitch of a human voice before it records anything. Applause, clatter and crowd rumble never start a clip, and a clip with too little voice in it is dropped instead of sent. Music with a strong melody or singing can still get through.
+- **One call per clip.** The call that hears a clip also finds the questions and answers them. With Gemini that is a single call; with Groq or OpenAI it is one transcription plus one call.
+- **Other models only when needed.** The fastest model with a key answers first. The rest are asked only if it is unsure or flags the question, and web search runs only if they still disagree. Double-tap a question to ask every model straight away, or turn on "Ask every model every time" in Settings.
+- **Rolling context.** The last 45 seconds of what was said goes along with each clip, so a question split by a pause is stitched back together.
+- **Spending guard.** Settings shows the calls sent today and lets you cap calls per day (default 800) and heard questions per minute (default 8).
 
 ## How confidence works
 
 Every model answers each question separately and gives its own 0–100 estimate. The page groups matching answers:
 
-- **Confident**: all models agree.
+- **Confident**: all models that answered agree, or a single model is at least 85% sure.
 - **Fairly sure**: a majority agree.
 - **Unsure**: the models disagree, or a lone model is not sure.
 

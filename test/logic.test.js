@@ -84,6 +84,30 @@ function frames(seconds, amp, sr) {
   frames(2, 0.05, sr).forEach((f) => seg2.push(f));
   assert.strictEqual(clips2.length, 1, "steady noise no longer counts as speech");
 
+  // loud sounds with no voice in them (applause, clatter) never become a clip
+  function noise(seconds, amp) {
+    const out = []; let seed = 7;
+    for (let i = 0; i < Math.round((seconds * sr) / 2048); i++) {
+      const f = new Float32Array(2048);
+      for (let j = 0; j < f.length; j++) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; f[j] = amp * ((seed / 0x3fffffff) - 1); }
+      out.push(f);
+    }
+    return out;
+  }
+  assert.ok(L.voicing(frames(0.1, 0.2, sr)[0], sr) > 0.8, "a steady pitch reads as voiced");
+  assert.ok(L.voicing(noise(0.1, 0.2)[0], sr) < 0.3, "noise reads as unvoiced");
+  const clips3 = [];
+  const seg3 = L.createSegmenter({ sampleRate: sr, onSegment: (c) => clips3.push(c) });
+  frames(1, 0.002, sr).forEach((f) => seg3.push(f));
+  noise(3, 0.3).forEach((f) => seg3.push(f));        // applause
+  frames(1.5, 0.002, sr).forEach((f) => seg3.push(f));
+  assert.strictEqual(clips3.length, 0, "applause is not sent");
+  // a voice followed by trailing noise ends shortly after the voice stops
+  frames(2, 0.2, sr).forEach((f) => seg3.push(f));
+  noise(3, 0.15).forEach((f) => seg3.push(f));
+  assert.strictEqual(clips3.length, 1);
+  assert.ok(clips3[0].length / sr < 4.5, "clip ended despite the noise: " + clips3[0].length / sr);
+
   const down = L.downsample(clips[0], sr, 16000);
   assert.ok(Math.abs(down.length - clips[0].length / 3) <= 1);
   const wav = new DataView(L.encodeWav(down, 16000));

@@ -103,9 +103,19 @@
       <legend>Behavior</legend>
       <label class="check"><input type="checkbox" id="optSearch"> Let models search the web when unsure</label>
       <label class="check"><input type="checkbox" id="optAuto"> Answer questions automatically (off: double-tap a question to look it up)</label>
+      <label class="check"><input type="checkbox" id="optAll"> Ask every model every time (slower, more calls)</label>
       <label class="check"><input type="checkbox" id="optRemember"> Remember keys on this device</label>
       <label for="optLang">Listening language</label>
       <input id="optLang" type="text" autocomplete="off" spellcheck="false" placeholder="en-US">
+    </fieldset>
+
+    <fieldset>
+      <legend>Spending guard</legend>
+      <p class="hint" id="usageOut"></p>
+      <label for="optCap">Most calls per day (0 for no limit)</label>
+      <input id="optCap" type="text" inputmode="numeric" autocomplete="off">
+      <label for="optPerMin">Most heard questions per minute (0 for no limit)</label>
+      <input id="optPerMin" type="text" inputmode="numeric" autocomplete="off">
     </fieldset>
 
     <fieldset>

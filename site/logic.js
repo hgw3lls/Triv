@@ -125,20 +125,48 @@
     return Math.sqrt(sum / (frame.length || 1));
   }
 
-  // Splits a stream of microphone frames into clips. A clip starts when the sound rises above the
-  // room's background level and ends at the first long enough pause (or at the length cap).
+  // How strongly a frame repeats at the pitch of a human voice (roughly 70-400 Hz), from 0 to 1.
+  // Voiced speech scores high; applause, clatter, hiss and crowd rumble score low.
+  function voicing(frame, sr) {
+    var d = Math.max(1, Math.round(sr / 8000)), fs = sr / d, n = Math.floor(frame.length / d);
+    if (n < 64) return 0;
+    var x = new Float32Array(n), mean = 0, i, k;
+    for (i = 0; i < n; i++) {
+      var sum = 0;
+      for (k = 0; k < d; k++) sum += frame[i * d + k];
+      x[i] = sum / d; mean += x[i];
+    }
+    mean /= n;
+    var energy = 0;
+    for (i = 0; i < n; i++) { x[i] -= mean; energy += x[i] * x[i]; }
+    if (energy < 1e-9) return 0;
+    var lo = Math.max(2, Math.ceil(fs / 400)), hi = Math.min(n - 32, Math.floor(fs / 70)), best = 0;
+    for (var lag = lo; lag <= hi; lag++) {
+      var r = 0;
+      for (i = 0; i < n - lag; i++) r += x[i] * x[i + lag];
+      r = (r / energy) * (n / (n - lag));
+      if (r > best) best = r;
+    }
+    return Math.min(1, best);
+  }
+
+  // Splits a stream of microphone frames into clips, all on the device.
+  // A clip starts when a voice is heard above the room's background level, and ends at the first
+  // long enough pause (or at the length cap). Loud sounds with no voice in them never start a clip,
+  // and a clip with too little voice in it is dropped instead of sent.
   function createSegmenter(opts) {
     var sr = opts.sampleRate;
     var endSilence = opts.endSilenceMs || 1000, maxMs = opts.maxMs || 20000, minSpeech = opts.minSpeechMs || 500;
+    var minVoiced = opts.minVoicedMs || 250, voicedAt = opts.voicedAt || 0.45, holdMs = 600;
     var prerollSamples = Math.round(((opts.prerollMs || 350) / 1000) * sr);
-    var floor = 0.004, pre = [], preLen = 0, seg = null, segLen = 0, speechMs = 0, silenceMs = 0, segMin = 1;
+    var floor = 0.004, pre = [], preLen = 0, seg = null, segLen = 0, speechMs = 0, voicedMs = 0, sinceVoiced = 0, silenceMs = 0, segMin = 1;
     function threshold() { return Math.max(0.01, floor * 2.5); }
     function finish(capped) {
-      var parts = seg, n = segLen, spoke = speechMs;
+      var parts = seg, n = segLen, spoke = speechMs, voiced = voicedMs;
       if (capped) floor = Math.max(floor, segMin); // never went quiet: the room is louder than assumed
-      seg = null; segLen = 0; speechMs = 0; silenceMs = 0; segMin = 1;
+      seg = null; segLen = 0; speechMs = 0; voicedMs = 0; sinceVoiced = 0; silenceMs = 0; segMin = 1;
       if (opts.onState) opts.onState(false);
-      if (spoke < minSpeech) return;
+      if (spoke < minSpeech || voiced < minVoiced) return;
       var out = new Float32Array(n), at = 0;
       parts.forEach(function (f) { out.set(f, at); at += f.length; });
       opts.onSegment(out);
@@ -146,22 +174,25 @@
     return {
       push: function (frame) {
         var ms = (frame.length / sr) * 1000, e = rms(frame), loud = e > threshold();
+        var voiced = loud && voicing(frame, sr) >= voicedAt;
         if (!seg) {
-          if (!loud) {
-            floor = floor * 0.97 + e * 0.03;
+          if (!voiced) {
+            floor = loud ? floor * 0.99 + e * 0.01 : floor * 0.97 + e * 0.03;
             pre.push(frame); preLen += frame.length;
             while (pre.length > 1 && preLen - pre[0].length >= prerollSamples) preLen -= pre.shift().length;
             return;
           }
           seg = pre; segLen = preLen; pre = []; preLen = 0;
           seg.push(frame); segLen += frame.length;
-          speechMs = ms; silenceMs = 0; segMin = e;
+          speechMs = ms; voicedMs = ms; sinceVoiced = 0; silenceMs = 0; segMin = e;
           if (opts.onState) opts.onState(true);
           return;
         }
         seg.push(frame); segLen += frame.length;
         if (e < segMin) segMin = e;
-        if (loud) { speechMs += ms; silenceMs = 0; } else silenceMs += ms;
+        if (voiced) { voicedMs += ms; sinceVoiced = 0; } else sinceVoiced += ms;
+        // still talking: loud, and a voice was heard in the last moment (covers s, f, t and other unvoiced sounds)
+        if (loud && sinceVoiced < holdMs) { speechMs += ms; silenceMs = 0; } else silenceMs += ms;
         if (silenceMs >= endSilence) finish(false);
         else if ((segLen / sr) * 1000 >= maxMs) finish(true);
       },
@@ -195,7 +226,7 @@
     return buf;
   }
 
-  var api = { rms: rms, createSegmenter: createSegmenter, downsample: downsample, encodeWav: encodeWav, norm: norm, sameAnswer: sameAnswer, parseJson: parseJson, clampPct: clampPct, consensus: consensus, csvCell: csvCell };
+  var api = { rms: rms, voicing: voicing, createSegmenter: createSegmenter, downsample: downsample, encodeWav: encodeWav, norm: norm, sameAnswer: sameAnswer, parseJson: parseJson, clampPct: clampPct, consensus: consensus, csvCell: csvCell };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.TriviaLogic = api;
 })(typeof window !== "undefined" ? window : this);
