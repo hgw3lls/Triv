@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#f6f6f8">
+<title>Trivia Listener</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="bar">
+  <div class="who">
+    <div class="avatar" aria-hidden="true">?</div>
+    <div>
+      <h1>Trivia</h1>
+      <div class="status" id="status">Not listening</div>
+    </div>
+  </div>
+  <button class="textbtn" id="settingsBtn" type="button">Settings</button>
+</header>
+
+<main class="thread" id="thread" aria-live="polite"></main>
+
+<p class="notice" id="notice" role="status"></p>
+
+<form class="composer" id="composer">
+  <button class="round mic" id="micBtn" type="button" aria-pressed="false" aria-label="Start listening">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15Zm6-3.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.9V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.6a6 6 0 0 0 5-5.9Z"/></svg>
+  </button>
+  <input type="text" id="askInput" autocomplete="off" enterkeyhint="send" placeholder="Type a question" aria-label="Type a question">
+  <button class="round send" id="sendBtn" type="submit" aria-label="Send question">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 4.5a1 1 0 0 1 .7.3l6 6a1 1 0 1 1-1.4 1.4L13 7.9V19a1 1 0 1 1-2 0V7.9l-4.3 4.3a1 1 0 0 1-1.4-1.4l6-6a1 1 0 0 1 .7-.3Z"/></svg>
+  </button>
+</form>
+
+<dialog id="sheet" aria-labelledby="sheetTitle">
+  <form method="dialog" class="sheet" id="sheetForm">
+    <div class="sheethead">
+      <h2 id="sheetTitle">Settings</h2>
+      <button class="textbtn strong" type="submit" id="doneBtn">Done</button>
+    </div>
+
+    <p class="hint" id="sheetHint">Add at least one API key. Keys stay in this browser and are sent only to the company that issued them.</p>
+
+    <fieldset>
+      <legend>Claude</legend>
+      <label for="key-claude">API key</label>
+      <input id="key-claude" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+      <label for="model-claude">Model</label>
+      <input id="model-claude" type="text" autocomplete="off" spellcheck="false" list="list-claude">
+      <datalist id="list-claude"></datalist>
+    </fieldset>
+
+    <fieldset>
+      <legend>OpenAI</legend>
+      <label for="key-openai">API key</label>
+      <input id="key-openai" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…">
+      <label for="model-openai">Model</label>
+      <input id="model-openai" type="text" autocomplete="off" spellcheck="false" list="list-openai">
+      <datalist id="list-openai"></datalist>
+    </fieldset>
+
+    <fieldset>
+      <legend>Gemini</legend>
+      <label for="key-gemini">API key</label>
+      <input id="key-gemini" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…">
+      <label for="model-gemini">Model</label>
+      <input id="model-gemini" type="text" autocomplete="off" spellcheck="false" list="list-gemini">
+      <datalist id="list-gemini"></datalist>
+    </fieldset>
+
+    <button class="rowbtn" type="button" id="modelsBtn">Check keys and load model lists</button>
+    <p class="hint" id="modelsOut"></p>
+
+    <fieldset>
+      <legend>Behavior</legend>
+      <label class="check"><input type="checkbox" id="optSearch"> Let models search the web when unsure</label>
+      <label class="check"><input type="checkbox" id="optRemember"> Remember keys on this device</label>
+      <label for="optLang">Listening language</label>
+      <input id="optLang" type="text" autocomplete="off" spellcheck="false" placeholder="en-US">
+    </fieldset>
+
+    <fieldset>
+      <legend>Answers</legend>
+      <button class="rowbtn" type="button" id="saveMd">Save answers as a text file (.md)</button>
+      <button class="rowbtn" type="button" id="saveCsv">Save answers as a spreadsheet (.csv)</button>
+      <button class="rowbtn danger" type="button" id="clearBtn">Clear all answers</button>
+    </fieldset>
+  </form>
+</dialog>
+
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
