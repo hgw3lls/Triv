@@ -10,6 +10,16 @@ A static web page that listens through the microphone, picks out trivia question
 4. Tap **Check keys and load model lists** to confirm each key works and to pick models.
 5. Tap the mic and leave it running.
 
+## Free keys
+
+The app works with no paid account:
+
+- **Groq** (console.groq.com): free key, no card. Handles silent listening (Whisper) and answers with a fast open model.
+- **Gemini** (Google AI Studio): free key. Handles silent listening and answers; web search needs the paid tier.
+- **OpenRouter** (openrouter.ai): free key for models whose name ends in `:free`, with a low daily cap.
+
+Free models cannot search the web or read photos here, and their limits change, so check each provider's page.
+
 ## Using it
 
 - **Mic** (in the message box): tap once and leave it running. It turns red while listening. With a Gemini or OpenAI key it records silently, cuts the audio at each pause, and submits every question it finds without waiting for you.

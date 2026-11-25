@@ -6,7 +6,10 @@
   var PROVIDERS = [
     { id: "claude", name: "Claude", model: "claude-haiku-5-5" },
     { id: "openai", name: "OpenAI", model: "gpt-5.5" },
-    { id: "gemini", name: "Gemini", model: "gemini-3.6-flash" }
+    { id: "gemini", name: "Gemini", model: "gemini-3.6-flash" },
+    // Free tiers. "compat" marks services that speak the common chat-completions format: no web search, no photos.
+    { id: "groq", name: "Groq", model: "openai/gpt-oss-120b", compat: "https://api.groq.com/openai/v1" },
+    { id: "openrouter", name: "OpenRouter", model: "meta-llama/llama-3.3-70b-instruct:free", compat: "https://openrouter.ai/api/v1" }
   ];
   var SKEY = "trivia-settings-v1", IKEY = "trivia-items-v1";
   var settings = { keys: {}, models: {}, search: true, auto: true, remember: true, lang: "en-US" };
@@ -133,9 +136,20 @@
     }
   };
 
+  async function callCompat(p, key, model, system, user) {
+    var r = await http(p.compat + "/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + key },
+      body: JSON.stringify({ model: model, messages: [{ role: "system", content: system }, { role: "user", content: user }] })
+    });
+    var m = ((r.choices || [])[0] || {}).message || {};
+    return { text: String(m.content || ""), sources: [], searched: false };
+  }
+
   // Ask one provider. If the search tool is rejected (not enabled on the account or model), retry without it.
   async function ask(p, system, user, search, image) {
     var key = settings.keys[p.id].trim(), model = modelOf(p);
+    if (p.compat) return callCompat(p, key, model, system, user);
     if (!search) return CALL[p.id](key, model, system, user, false, image);
     try {
       return await CALL[p.id](key, model, system, user, true, image);
@@ -172,7 +186,7 @@
     spotting = true;
     var parsed = null, lastErr = null;
     // Cheapest order for spotting; fall through to the next key if one fails.
-    var order = ["gemini", "openai", "claude"].map(function (id) { return act.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
+    var order = ["gemini", "groq", "openai", "openrouter", "claude"].map(function (id) { return act.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
     for (var i = 0; i < order.length && !parsed; i++) {
       try {
         var r = await ask(order[i], spotPrompt(), "Transcript:\n<<<\n" + chunk + "\n>>>", false);
@@ -225,11 +239,16 @@
     if (!act.length) { say("Add an API key in Settings to get answers.", true); return; }
     var image = images.get(item) || null;
     if (item.thumb && !image && item.question === "Photo") { say("That photo is no longer in memory. Attach it again.", true); return; }
+    if (image) {
+      act = act.filter(function (p) { return !p.compat; });
+      if (!act.length) { say("Photos need a Claude, OpenAI or Gemini key.", true); return; }
+    }
     var runId = item.runId = (item.runId || 0) + 1;
     item.asked = true; item.final = null; item.results = {}; item.checking = false; item.wantsSearch = false;
     function stale() { return items.indexOf(item) < 0 || item.runId !== runId; }
     function pass(search) {
       return Promise.all(act.map(function (p) {
+        if (search && p.compat) return Promise.resolve(); // nothing to look up with: keep its quick answer
         if (!search) item.results[p.id] = { pending: true };
         var res;
         var user = (image ? "Answer the trivia question in the attached photo." : "Question: " + item.question) + (search ? "\nCheck with a web search before answering." : "");
@@ -487,6 +506,7 @@
 
   function audioProvider() {
     if ((settings.keys.gemini || "").trim()) return "gemini";
+    if ((settings.keys.groq || "").trim()) return "groq";
     if ((settings.keys.openai || "").trim()) return "openai";
     return null;
   }
@@ -573,24 +593,30 @@
         (Array.isArray(parsed.questions) ? parsed.questions : []).forEach(function (q) { addQuestion(q, { run: settings.auto }); });
         return;
       } catch (e) {
-        if (!(settings.keys.openai || "").trim()) throw new Error("Gemini: " + e.message);
+        if (!(settings.keys.groq || "").trim() && !(settings.keys.openai || "").trim()) throw new Error("Gemini: " + e.message);
       }
     }
-    // OpenAI: transcribe the clip, then spot questions in the text.
-    var heard = "";
-    var models = ["gpt-4o-mini-transcribe", "whisper-1"];
-    for (var i = 0; i < models.length; i++) {
-      var fd = new FormData();
-      fd.append("file", new Blob([wav], { type: "audio/wav" }), "clip.wav");
-      fd.append("model", models[i]);
-      try {
-        var t = await http("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { authorization: "Bearer " + settings.keys.openai.trim() }, body: fd });
-        heard = String(t.text || "");
-        break;
-      } catch (e) {
-        if (i === models.length - 1 || (e.status !== 400 && e.status !== 404)) throw new Error("OpenAI: " + e.message);
+    // Groq or OpenAI: transcribe the clip, then spot questions in the text.
+    var services = [];
+    if ((settings.keys.groq || "").trim()) services.push({ name: "Groq", url: "https://api.groq.com/openai/v1/audio/transcriptions", key: settings.keys.groq.trim(), models: ["whisper-large-v3-turbo", "whisper-large-v3"] });
+    if ((settings.keys.openai || "").trim()) services.push({ name: "OpenAI", url: "https://api.openai.com/v1/audio/transcriptions", key: settings.keys.openai.trim(), models: ["gpt-4o-mini-transcribe", "whisper-1"] });
+    var heard = null, lastErr = "";
+    for (var s = 0; s < services.length && heard === null; s++) {
+      for (var i = 0; i < services[s].models.length && heard === null; i++) {
+        var fd = new FormData();
+        fd.append("file", new Blob([wav], { type: "audio/wav" }), "clip.wav");
+        fd.append("model", services[s].models[i]);
+        if (settings.lang) fd.append("language", settings.lang.slice(0, 2).toLowerCase());
+        try {
+          var t = await http(services[s].url, { method: "POST", headers: { authorization: "Bearer " + services[s].key }, body: fd });
+          heard = String(t.text || "");
+        } catch (e) {
+          lastErr = services[s].name + ": " + e.message;
+          if (e.status !== 400 && e.status !== 404) break; // not a model-name problem: try the next service
+        }
       }
     }
+    if (heard === null) throw new Error(lastErr || "No service could transcribe it");
     if (heard.trim()) { pending += " " + heard; clearTimeout(timer); await spot(); }
   }
 
@@ -731,7 +757,7 @@
   function openSheet(hint) {
     fillSheet();
     var h = $("sheetHint");
-    h.textContent = hint || "Add at least one API key. Keys stay in this browser and are sent only to the company that issued them.";
+    h.textContent = hint || "Add at least one API key. Gemini, Groq and OpenRouter have free keys. Keys stay in this browser and are sent only to the company that issued them.";
     h.className = "hint" + (hint ? " err" : "");
     if (sheet.showModal) sheet.showModal(); else sheet.setAttribute("open", "");
   }
@@ -756,13 +782,17 @@
         } else if (p.id === "openai") {
           var o = await http("https://api.openai.com/v1/models", { headers: { authorization: "Bearer " + key } });
           ids = (o.data || []).map(function (m) { return m.id; }).filter(function (id) { return /^(gpt|o\d|chatgpt)/.test(id); }).sort().reverse();
+        } else if (p.compat) {
+          var c = await http(p.compat + "/models", { headers: { authorization: "Bearer " + key } });
+          ids = (c.data || []).map(function (m) { return m.id; }).filter(function (id) { return !/whisper|guard|tts|orpheus/i.test(id); })
+            .sort(function (x, y) { return (/:free$/.test(y) ? 1 : 0) - (/:free$/.test(x) ? 1 : 0); });
         } else {
           var g = await http("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": key } });
           ids = (g.models || []).filter(function (m) { return (m.supportedGenerationMethods || []).indexOf("generateContent") >= 0; })
             .map(function (m) { return String(m.name || "").replace(/^models\//, ""); });
         }
         var list = $("list-" + p.id); list.textContent = "";
-        ids.slice(0, 80).forEach(function (id) { var opt = document.createElement("option"); opt.value = id; list.appendChild(opt); });
+        ids.slice(0, 120).forEach(function (id) { var opt = document.createElement("option"); opt.value = id; list.appendChild(opt); });
         var chosen = modelOf(p);
         lines.push(p.name + ": key works, " + ids.length + " models." + (ids.indexOf(chosen) < 0 ? " \"" + chosen + "\" is not in your list, so pick another model." : ""));
       } catch (e) {
@@ -800,7 +830,7 @@
   $("saveBtn").addEventListener("click", saveMd);
   $("saveCsv").addEventListener("click", function () {
     if (!items.length) { $("modelsOut").textContent = "No answers to save yet."; return; }
-    var rows = [["#", "Question", "Answer", "Confidence", "Percent", "Agree", "Marked", "Claude", "OpenAI", "Gemini"]];
+    var rows = [["#", "Question", "Answer", "Confidence", "Percent", "Agree", "Marked"].concat(PROVIDERS.map(function (p) { return p.name; }))];
     items.forEach(function (it) {
       var f = it.final || {};
       rows.push([it.n, it.question, f.answer || "", f.level || "", f.percent != null ? f.percent : "", f.of ? f.agree + "/" + f.of : "", it.mark === "up" ? "right" : it.mark === "down" ? "wrong" : ""].concat(

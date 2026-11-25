@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.groq.com https://openrouter.ai; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#000000">
 <title>Robbie</title>
@@ -49,7 +49,7 @@
       <button class="textbtn strong" type="submit" id="doneBtn">Done</button>
     </div>
 
-    <p class="hint" id="sheetHint">Add at least one API key. Keys stay in this browser and are sent only to the company that issued them.</p>
+    <p class="hint" id="sheetHint">Add at least one API key. Gemini, Groq and OpenRouter have free keys. Keys stay in this browser and are sent only to the company that issued them.</p>
 
     <fieldset>
       <legend>Claude</legend>
@@ -76,6 +76,24 @@
       <label for="model-gemini">Model</label>
       <input id="model-gemini" type="text" autocomplete="off" spellcheck="false" list="list-gemini">
       <datalist id="list-gemini"></datalist>
+    </fieldset>
+
+    <fieldset>
+      <legend>Groq (free)</legend>
+      <label for="key-groq">API key</label>
+      <input id="key-groq" type="password" autocomplete="off" spellcheck="false" placeholder="gsk_…">
+      <label for="model-groq">Model</label>
+      <input id="model-groq" type="text" autocomplete="off" spellcheck="false" list="list-groq">
+      <datalist id="list-groq"></datalist>
+    </fieldset>
+
+    <fieldset>
+      <legend>OpenRouter (free models)</legend>
+      <label for="key-openrouter">API key</label>
+      <input id="key-openrouter" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-…">
+      <label for="model-openrouter">Model</label>
+      <input id="model-openrouter" type="text" autocomplete="off" spellcheck="false" list="list-openrouter">
+      <datalist id="list-openrouter"></datalist>
     </fieldset>
 
     <button class="rowbtn" type="button" id="modelsBtn">Check keys and load model lists</button>
