@@ -5,7 +5,7 @@ A static web page that listens through the microphone, picks out trivia question
 ## Set up
 
 1. In the repository, open **Settings → Pages** and set **Source** to **GitHub Actions**.
-2. Push to `main` (or run the workflow by hand). The site appears at `https://<user>.github.io/trivia-listener/`.
+2. Push to `main` (or run the workflow by hand). The site appears at `https://<user>.github.io/Triv/`.
 3. Open the site, tap **Settings**, and paste your API keys. One key is enough; three gives agreement-based confidence.
 4. Tap **Check keys and load model lists** to confirm each key works and to pick models.
 5. Tap the mic and leave it running.
